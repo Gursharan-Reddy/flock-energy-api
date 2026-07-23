@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flock Energy - Meter Operations Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for rendering consumption graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-white">Urja Portal Operations</h1>
+                <p class="text-sm text-gray-400">Live API Proxy Dashboard</p>
+            </div>
+            <a href="https://flock-energy-api.onrender.com/docs" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                View Swagger Docs
+            </a>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left 2 Columns: Meter Table -->
+            <div class="lg:col-span-2 bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-700 bg-gray-800/50">
+                    <h2 class="font-semibold text-lg text-white">Connected Smart Meters</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-gray-400 text-xs uppercase bg-gray-900/50 border-b border-gray-700">
+                                <th class="p-4">Meter ID</th>
+                                <th class="p-4">Serial No</th>
+                                <th class="p-4">Make</th>
+                                <th class="p-4">Phase</th>
+                                <th class="p-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="meters-table-body" class="divide-y divide-gray-700 text-sm">
+                            <tr>
+                                <td colspan="5" class="p-4 text-center text-gray-400">Loading meters from API proxy...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right Column: Meter Details & Chart -->
+            <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 flex flex-col justify-between">
+                <div>
+                    <h2 class="font-semibold text-lg text-white mb-4">Meter Telemetry</h2>
+                    <div id="selected-meter-info" class="text-sm text-gray-400 mb-6 bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
+                        Select a meter from the table to view its historical consumption graph and telemetry data.
+                    </div>
+                </div>
+
+                <!-- Canvas for Chart.js -->
+                <div class="relative h-64 w-full">
+                    <canvas id="consumptionChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Updated to point directly to your live Render backend
+        const API_BASE = 'https://flock-energy-api.onrender.com';
+
+        let myChart = null;
+
+        async function fetchMeters() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/meters`);
+                const result = await response.json();
+                
+                const tbody = document.getElementById('meters-table-body');
+                tbody.innerHTML = '';
+
+                const meters = result.data || result;
+
+                meters.forEach(meter => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-700/50 cursor-pointer transition';
+                    tr.innerHTML = `
+                        <td class="p-4 font-medium text-emerald-400">${meter.meterId || meter.meter_id}</td>
+                        <td class="p-4 text-gray-300">${meter.serialNo || meter.serial_number}</td>
+                        <td class="p-4 text-gray-300">${meter.make}</td>
+                        <td class="p-4 text-gray-300">${meter.phaseType || meter.phase}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 text-xs rounded-full ${(meter.installStatus === 'Installed') ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-700/50' : 'bg-red-900/50 text-red-400 border border-red-700/50'}">
+                                ${meter.installStatus || meter.status}
+                            </span>
+                        </td>
+                    `;
+                    
+                    tr.addEventListener('click', () => loadMeterDetails(meter.meterId || meter.meter_id));
+                    tbody.appendChild(tr);
+                });
+
+            } catch (error) {
+                console.error('Failed to load meters:', error);
+                document.getElementById('meters-table-body').innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-400">Failed to connect to backend proxy.</td></tr>`;
+            }
+        }
+
+        async function loadMeterDetails(meterId) {
+            const infoDiv = document.getElementById('selected-meter-info');
+            infoDiv.innerHTML = `<span class="text-emerald-400">Loading data for ${meterId}...</span>`;
+
+            try {
+                const [geoRes, energyRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/v1/meters/${meterId}`),
+                    fetch(`${API_BASE}/api/v1/meters/${meterId}/consumption`)
+                ]);
+
+                const geoData = await geoRes.json();
+                const energyData = await energyRes.json();
+
+                infoDiv.innerHTML = `
+                    <p class="font-bold text-white mb-1">Active Meter: ${meterId}</p>
+                    <p class="text-xs text-gray-300">Coordinates: <span class="text-emerald-400">${geoData.latitude || 'N/A'}, ${geoData.longitude || 'N/A'}</span></p>
+                `;
+
+                renderChart(energyData);
+
+            } catch (error) {
+                console.error('Error loading meter telemetry:', error);
+                infoDiv.innerHTML = `<span class="text-red-400">Failed to load telemetry data.</span>`;
+            }
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('consumptionChart').getContext('2d');
+            
+            const labels = data.map(item => item.timestamp || item.time || 'Reading').slice(-20);
+            const values = data.map(item => item.kwh || item.KWH || item.value || 0).slice(-20);
+
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Consumption (KWH)',
+                        data: values,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        fetchMeters();
+    </script>
+</body>
+</html>
