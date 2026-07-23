@@ -1,4 +1,3 @@
-// src/client.js
 const axios = require('axios');
 const { wrapper } = require('axios-cookiejar-support');
 const { CookieJar } = require('tough-cookie');
@@ -7,13 +6,9 @@ const BASE_URL = 'https://urja-ops.flockenergy.tech';
 const USERNAME = 'operator@urja.local';
 const PASSWORD = 'urja-ops-2026';
 
-// Initialize CookieJar to maintain session state across requests
 const jar = new CookieJar();
 const client = wrapper(axios.create({ jar, withCredentials: true, baseURL: BASE_URL }));
 
-/**
- * Authenticates with the Urja portal and stores the session cookie.
- */
 async function authenticate() {
     try {
         const payload = new URLSearchParams();
@@ -41,9 +36,7 @@ async function authenticate() {
     }
 }
 
-/**
- * Fetches the paginated list of meters using the internal JSON search API.
- */
+
 async function getMeters(page = 1) {
     try {
         const response = await client.get(`/portal/meters/search?q=&page=${page}`, {
@@ -61,9 +54,6 @@ async function getMeters(page = 1) {
     }
 }
 
-/**
- * Fetches specific meter location details using the internal geo JSON API.
- */
 async function getMeterDetails(meterId) {
     try {
         const response = await client.get(`/portal/meters/${meterId}/geo`, {
@@ -81,9 +71,6 @@ async function getMeterDetails(meterId) {
     }
 }
 
-/**
- * Fetches the historical reading data using the internal energy JSON API.
- */
 async function getMeterConsumption(meterId) {
     try {
         const response = await client.get(`/portal/meters/${meterId}/energy`, {

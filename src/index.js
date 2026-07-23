@@ -1,4 +1,3 @@
-// src/index.js
 const express = require('express');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
@@ -8,19 +7,12 @@ const { authenticate, getMeters, getMeterDetails, getMeterConsumption } = requir
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static files (like index.html) from the root directory
 app.use(express.static(path.join(__dirname, '..')));
 
-// Load Swagger documentation definition
 const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
 
-// Serve Swagger UI documentation
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-/**
- * GET /api/v1/meters
- * Fetches a paginated list of meters.
- */
 app.get('/api/v1/meters', async (req, res) => {
     try {
         const page = req.query.page || 1;
@@ -31,10 +23,6 @@ app.get('/api/v1/meters', async (req, res) => {
     }
 });
 
-/**
- * GET /api/v1/meters/:id
- * Fetches specific meter details (geo/location).
- */
 app.get('/api/v1/meters/:id', async (req, res) => {
     try {
         const meterId = req.params.id;
@@ -45,10 +33,7 @@ app.get('/api/v1/meters/:id', async (req, res) => {
     }
 });
 
-/**
- * GET /api/v1/meters/:id/consumption
- * Fetches historical energy consumption for a specific meter.
- */
+
 app.get('/api/v1/meters/:id/consumption', async (req, res) => {
     try {
         const meterId = req.params.id;
@@ -59,7 +44,6 @@ app.get('/api/v1/meters/:id/consumption', async (req, res) => {
     }
 });
 
-// Start the server and perform initial authentication check
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`Swagger documentation available at http://localhost:${PORT}/docs`);
