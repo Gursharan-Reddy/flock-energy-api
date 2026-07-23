@@ -1,0 +1,34 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Flock Energy API",
+    "version": "1.0.0",
+    "description": "Clean REST API proxy layer over legacy Urja portal"
+  },
+  "paths": {
+    "/api/v1/meters": {
+      "get": {
+        "summary": "Retrieve a list of smart meters",
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/api/v1/meters/{id}": {
+      "get": {
+        "summary": "Get specific meter details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    }
+  }
+}
