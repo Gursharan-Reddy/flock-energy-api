@@ -1,0 +1,49 @@
+openapi: 3.0.0
+info:
+  title: Flock Energy API
+  version: 1.0.0
+  description: Clean REST API proxy layer over legacy Urja portal
+servers:
+  - url: https://flock-energy-api.onrender.com
+    description: Production Server (Render)
+  - url: http://localhost:3000
+    description: Local Development Server
+paths:
+  /api/v1/meters:
+    get:
+      summary: Retrieve a list of smart meters
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number for pagination
+      responses:
+        '200':
+          description: Successful response containing the list of meters
+  /api/v1/meters/{id}:
+    get:
+      summary: Get specific meter details (geo/location)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The unique Meter ID (e.g. J100000)
+      responses:
+        '200':
+          description: Successful response with meter location/geo details
+  /api/v1/meters/{id}/consumption:
+    get:
+      summary: Get historical energy consumption for a specific meter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The unique Meter ID (e.g. J100000)
+      responses:
+        '200':
+          description: Successful response with historical half-hourly energy telemetry
